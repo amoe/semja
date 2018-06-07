@@ -17,24 +17,28 @@ use autodie qw(:all);
 use YAML qw(Load);
 use Text::Template;
 
-my $conf_text = read_file "/usr/local/etc/semja.json";
-my $conf = decode_json $conf_text;
-say dump($conf);
+my $dbh;
 
-my $driver   = "Pg"; 
-my $database = $conf->{database};
-my $host = $conf->{hostname};
-my $port = $conf->{port};
+sub initialize {
+    my $conf_text = read_file "/usr/local/etc/semja.json";
+    my $conf = decode_json $conf_text;
+    say dump($conf);
+
+    my $driver   = "Pg"; 
+    my $database = $conf->{database};
+    my $host = $conf->{hostname};
+    my $port = $conf->{port};
 
 
-my $dsn = "DBI:${driver}:dbname=${database};host=${host};port=${port}";
+    my $dsn = "DBI:${driver}:dbname=${database};host=${host};port=${port}";
 
-my $userid = $conf->{username};
-my $password = $conf->{password};
+    my $userid = $conf->{username};
+    my $password = $conf->{password};
 
-my $dbh = DBI->connect($dsn, $userid, $password, { RaiseError => 1 })
-                      or die $DBI::errstr;
-print "Opened database successfully\n";
+    $dbh = DBI->connect($dsn, $userid, $password, { RaiseError => 1 })
+        or die $DBI::errstr;
+    print "Opened database successfully\n";
+}
 
 # The script will create a temp table based on the structure
 # using CREATE TEMPORARY TABLE foo AS SELECT * FROM orig_table
@@ -220,32 +224,32 @@ sub run_task {
     run_upsert($concrete_upsert);
 }
 
+sub main {
+    my @merged_tasks;
 
+    for my $file (@ARGV) {
+        my $file_text = read_file($file);
+        my $val = Load($file_text);
 
-my @merged_tasks;
+        if ($val) {
+            say dump($val);
 
-for my $file (@ARGV) {
-    my $file_text = read_file($file);
-    my $val = Load($file_text);
-
-    if ($val) {
-        say dump($val);
-        
-        for my $task (@{$val->{tasks}}) {
-            push @merged_tasks, $task;
+            for my $task (@{$val->{tasks}}) {
+                push @merged_tasks, $task;
+            }
+        } else {
+            die "Some loaded file contained nothing.";
         }
-    } else {
-        die "Some loaded file contained nothing.";
     }
-}
 
 
-say dump(\@merged_tasks);
-say "Will run " . scalar(@merged_tasks) . " tasks.";
+    say dump(\@merged_tasks);
+    say "Will run " . scalar(@merged_tasks) . " tasks.";
 
 
-for my $real_task (@merged_tasks) {
-    run_task($real_task);
+    for my $real_task (@merged_tasks) {
+        run_task($real_task);
+    }
 }
 
 
