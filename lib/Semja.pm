@@ -225,9 +225,11 @@ sub run_task {
 }
 
 sub main {
+    my @args = @_;
+
     my @merged_tasks;
 
-    for my $file (@ARGV) {
+    for my $file (@_) {
         my $file_text = read_file($file);
         my $val = Load($file_text);
 

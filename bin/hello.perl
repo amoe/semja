@@ -3,4 +3,9 @@
 use warnings;
 use strict;
 
-print "Hello, world!\n";
+use Semja;
+
+print "Running semja.\n";
+Semja::initialize();
+Semja::main(@ARGV);
+print "Finished.\n";
